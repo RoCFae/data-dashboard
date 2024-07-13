@@ -1,0 +1,52 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  html, body, #app {
+    background-color: #092635;
+    color: #FAF0E6;
+    font-family: 'Arial', sans-serif;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  
+  select, option {
+    background-color: #1B4242;
+    color: #FAF0E6;
+    border: 1px solid #5C8374;
+    border-radius: 5px;
+    padding: 5px;
+  }
+  
+  label {
+    color: #9EC8B9;
+  }
+  
+  .vue3-slider {
+    --vue-slider-main-color: #5C8374;
+    --vue-slider-rail-background: #1B4242;
+    --vue-slider-thumb-background: #9EC8B9;
+  }
+  
+  .dashboard {
+    background-color: #092635;
+    padding: 20px;
+    border-radius: 10px;
+  }
+  
+  .controls {
+    margin-bottom: 20px;
+  }
+  
+  .plot {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    background-color: #1B4242;
+    border-radius: 10px;
+    padding: 20px;
+  }
+  
