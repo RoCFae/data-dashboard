@@ -61,6 +61,8 @@ This project is a dynamic data visualization dashboard built with Vue.js for the
      npm install
      npm run serve
      ```
+### Screenshots
+
 
 ## Dependencies
 
