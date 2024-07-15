@@ -62,7 +62,29 @@ This project is a dynamic data visualization dashboard built with Vue.js for the
      npm run serve
      ```
 ### Screenshots
+![Main Page](media/main_page.png)
+*Main page of the dashboard*
 
+![Box Plot](media/box_plot.png)
+*Example of the Box Plot*
+
+![Contour Plot](media/countour_plot.png)
+*Example of the Contour Plot*
+
+![Histogram Plot](media/histogram_plot.png)
+*Example of the Histogram Plot*
+
+![Scatter Plot](media/scatter_plot.png)
+*Example of the Scatter Plot*
+
+![Plot Controls](media/plot_controls.png)
+*Plot controls to filter data and select plot types*
+
+![Summary Statistics](media/summary.png)
+*Summary statistics for the filtered data*
+
+### Video Demonstration
+[![Video Demonstration](https://img.youtube.com/vi/HkbNFkFy2Tk/0.jpg)](https://www.youtube.com/watch?v=HkbNFkFy2Tk&ab_channel=RodrigoFaé)
 
 ## Dependencies
 
