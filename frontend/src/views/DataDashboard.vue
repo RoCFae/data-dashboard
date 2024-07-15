@@ -1,96 +1,173 @@
 <template>
   <div class="dashboard">
-    <div class="left-panel">
+    <div class="header">
       <h1>Dynamic Dataset Dashboard</h1>
-      <div class="plot" v-if="selectedPlot === 'scatter'">
-        <PlotComponent :plotData="scatterPlotData" />
+    </div>
+    <div class="content">
+      <div class="left-panel">
+        <div class="sticky-container">
+          <h2 class="controls_tittle">Plot Controls</h2>
+          <div class="upload-wrapper">
+            <UploadComponent @file-uploaded="handleFileUploaded" />
+          </div>
+          <div class="controls">
+            <label for="plot-selector">Select Plot:</label>
+            <select
+              id="plot-selector"
+              v-model="selectedPlot"
+              @change="fetchPlot"
+            >
+              <option value="scatter">Scatter Plot</option>
+              <option value="contour">Contour Plot</option>
+              <option value="histogram">Histogram</option>
+              <option value="box">Box Plot</option>
+              <option value="all">All</option>
+            </select>
+          </div>
+          <div
+            v-if="
+              selectedPlot === 'scatter' ||
+              selectedPlot === 'contour' ||
+              selectedPlot === 'box' ||
+              selectedPlot === 'all'
+            "
+            class="controls"
+          >
+            <label for="x-column">X-Axis:</label>
+            <select id="x-column" v-model="xColumn" @change="updateRanges">
+              <option v-for="col in numericColumns" :key="col" :value="col">
+                {{ col }}
+              </option>
+            </select>
+            <label for="y-column" v-if="selectedPlot !== 'histogram'"
+              >Y-Axis:</label
+            >
+            <select
+              id="y-column"
+              v-if="selectedPlot !== 'histogram'"
+              v-model="yColumn"
+              @change="updateRanges"
+            >
+              <option v-for="col in numericColumns" :key="col" :value="col">
+                {{ col }}
+              </option>
+            </select>
+          </div>
+          <div class="controls">
+            <label for="color-column">Color By:</label>
+            <select
+              id="color-column"
+              v-model="colorColumn"
+              @change="fetchPlots"
+            >
+              <option v-for="col in columns" :key="col" :value="col">
+                {{ col }}
+              </option>
+            </select>
+          </div>
+          <div
+            v-if="
+              selectedPlot === 'scatter' ||
+              selectedPlot === 'contour' ||
+              selectedPlot === 'all' ||
+              selectedPlot === 'box'
+            "
+            class="controls"
+          >
+            <div>
+              <label for="min-x">Min X: {{ minX }}</label>
+              <vue3-slider
+                v-model="minX"
+                :min="xRange[0]"
+                :max="xRange[1]"
+                @change="debouncedFetchPlots"
+                :tooltip="true"
+              ></vue3-slider>
+            </div>
+            <div>
+              <label for="max-x">Max X: {{ maxX }}</label>
+              <vue3-slider
+                v-model="maxX"
+                :min="xRange[0]"
+                :max="xRange[1]"
+                @change="debouncedFetchPlots"
+                :tooltip="true"
+              ></vue3-slider>
+            </div>
+            <div v-if="selectedPlot !== 'histogram'">
+              <label for="min-y">Min Y: {{ minY }}</label>
+              <vue3-slider
+                v-model="minY"
+                :min="yRange[0]"
+                :max="yRange[1]"
+                @change="debouncedFetchPlots"
+                :tooltip="true"
+              ></vue3-slider>
+            </div>
+            <div v-if="selectedPlot !== 'histogram'">
+              <label for="max-y">Max Y: {{ maxY }}</label>
+              <vue3-slider
+                v-model="maxY"
+                :min="yRange[0]"
+                :max="yRange[1]"
+                @change="debouncedFetchPlots"
+                :tooltip="true"
+              ></vue3-slider>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="plot" v-else-if="selectedPlot === 'contour'">
-        <PlotComponent :plotData="contourPlotData" />
-      </div>
-      <div class="plot" v-else-if="selectedPlot === 'histogram'">
-        <PlotComponent :plotData="histogramPlotData" />
-      </div>
-      <div class="plot" v-else-if="selectedPlot === 'box'">
-        <PlotComponent :plotData="boxPlotData" />
-      </div>
-      <div v-if="selectedPlot === 'all'">
-        <div class="plot">
+      <div class="right-panel">
+        <div class="plot" v-if="selectedPlot === 'scatter'">
           <PlotComponent :plotData="scatterPlotData" />
         </div>
-        <div class="plot">
+        <div class="plot" v-else-if="selectedPlot === 'contour'">
           <PlotComponent :plotData="contourPlotData" />
         </div>
-        <div class="plot">
+        <div class="plot" v-else-if="selectedPlot === 'histogram'">
           <PlotComponent :plotData="histogramPlotData" />
         </div>
-        <div class="plot">
+        <div class="plot" v-else-if="selectedPlot === 'box'">
           <PlotComponent :plotData="boxPlotData" />
         </div>
-      </div>
-      <div class="summary">
-        <h2>Summary Statistics</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Group</th>
-              <th>Count</th>
-              <th v-for="(stat, index) in summaryHeaders" :key="index">{{ formattedHeader(stat) }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(row, index) in summaryStats" :key="index">
-              <td>{{ row[colorColumn] }}</td>
-              <td>{{ row.count }}</td>
-              <td v-for="(stat, statIndex) in summaryHeaders" :key="statIndex">{{ formatNumber(row[stat]) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div class="right-panel">
-      <div class="controls">
-        <label for="plot-selector">Select Plot:</label>
-        <select id="plot-selector" v-model="selectedPlot" @change="fetchPlot">
-          <option value="scatter">Scatter Plot</option>
-          <option value="contour">Contour Plot</option>
-          <option value="histogram">Histogram</option>
-          <option value="box">Box Plot</option>
-          <option value="all">All</option>
-        </select>
-      </div>
-      <div v-if="selectedPlot === 'scatter' || selectedPlot === 'contour' || selectedPlot === 'box'" class="controls">
-        <label for="x-column">X-Axis:</label>
-        <select id="x-column" v-model="xColumn" @change="updateRanges">
-          <option v-for="col in filteredColumns" :key="col" :value="col">{{ col }}</option>
-        </select>
-        <label for="y-column">Y-Axis:</label>
-        <select id="y-column" v-model="yColumn" @change="updateRanges">
-          <option v-for="col in filteredColumns" :key="col" :value="col">{{ col }}</option>
-        </select>
-      </div>
-      <div class="controls">
-        <label for="color-column">Color By:</label>
-        <select id="color-column" v-model="colorColumn" @change="fetchPlots">
-          <option v-for="col in columns" :key="col" :value="col">{{ col }}</option>
-        </select>
-      </div>
-      <div v-if="selectedPlot === 'scatter' || selectedPlot === 'contour' || selectedPlot === 'all' || selectedPlot === 'box'" class="controls">
-        <div>
-          <label for="min-x">Min X: {{ minX }}</label>
-          <vue3-slider v-model="minX" :min="xRange[0]" :max="xRange[1]" @change="debouncedFetchPlots" :tooltip="true"></vue3-slider>
+        <div v-if="selectedPlot === 'all'">
+          <div class="plot">
+            <PlotComponent :plotData="scatterPlotData" />
+          </div>
+          <div class="plot">
+            <PlotComponent :plotData="contourPlotData" />
+          </div>
+          <div class="plot">
+            <PlotComponent :plotData="histogramPlotData" />
+          </div>
+          <div class="plot">
+            <PlotComponent :plotData="boxPlotData" />
+          </div>
         </div>
-        <div>
-          <label for="max-x">Max X: {{ maxX }}</label>
-          <vue3-slider v-model="maxX" :min="xRange[0]" :max="xRange[1]" @change="debouncedFetchPlots" :tooltip="true"></vue3-slider>
-        </div>
-        <div>
-          <label for="min-y">Min Y: {{ minY }}</label>
-          <vue3-slider v-model="minY" :min="yRange[0]" :max="yRange[1]" @change="debouncedFetchPlots" :tooltip="true"></vue3-slider>
-        </div>
-        <div>
-          <label for="max-y">Max Y: {{ maxY }}</label>
-          <vue3-slider v-model="maxY" :min="yRange[0]" :max="yRange[1]" @change="debouncedFetchPlots" :tooltip="true"></vue3-slider>
+        <div v-if="summaryStats.length > 0" class="summary">
+          <h2>Summary Statistics</h2>
+          <table>
+            <thead>
+              <tr>
+                <th v-for="(header, index) in summaryHeaders" :key="index">
+                  {{ header }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, rowIndex) in summaryStats" :key="rowIndex">
+                <td
+                  v-for="(header, headerIndex) in summaryHeaders"
+                  :key="headerIndex"
+                >
+                  {{ row[header] }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div> 
+        <div v-else-if="summaryStats.length === 0" class="summary">
+          <p>No summary statistics available.</p>
         </div>
       </div>
     </div>
@@ -98,63 +175,100 @@
 </template>
 
 <script>
-import axios from 'axios';
-import PlotComponent from '../components/PlotComponent.vue';
-import Vue3Slider from 'vue3-slider';
-import debounce from 'lodash/debounce';
+import axios from "axios";
+import PlotComponent from "../components/PlotComponent.vue";
+import UploadComponent from "../components/UploadComponent.vue";
+import Vue3Slider from "vue3-slider";
+import debounce from "lodash/debounce";
 
-const API_BASE_URL = 'http://localhost:5000'; // URL base do backend
+const API_BASE_URL = "http://localhost:5000"; // URL base do backend
 
 export default {
-  name: 'DataDashboard',
+  name: "DataDashboard",
   components: {
     PlotComponent,
-    Vue3Slider
+    UploadComponent,
+    Vue3Slider,
   },
   data() {
     return {
-      selectedPlot: 'scatter',
-      xColumn: 'bill_length_mm',
-      yColumn: 'bill_depth_mm',
-      colorColumn: 'species',
+      selectedPlot: "all",
+      xColumn: "",
+      yColumn: "",
+      colorColumn: "",
       minX: 0,
-      maxX: 60,
+      maxX: 100,
       minY: 0,
-      maxY: 21,
+      maxY: 100,
       scatterPlotData: null,
       contourPlotData: null,
       histogramPlotData: null,
       boxPlotData: null,
       summaryStats: [],
       summaryHeaders: [],
-      columns: ['bill_length_mm', 'bill_depth_mm', 'flipper_length_mm', 'body_mass_g', 'species', 'island'],
-      filteredColumns: ['bill_length_mm', 'bill_depth_mm', 'flipper_length_mm', 'body_mass_g'],
-      xRange: [0, 60],
-      yRange: [0, 21]
+      columns: [],
+      numericColumns: [],
+      xRange: [0, 100],
+      yRange: [0, 100],
+      showSummary: true,
     };
   },
   methods: {
+    handleFileUploaded() {
+      this.showSummary = false;
+      this.fetchColumns();
+    },
+    async fetchColumns() {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/columns`);
+        this.columns = response.data;
+        const numericCheckPromises = this.columns.map((col) =>
+          this.isNumeric(col)
+        );
+        const numericResults = await Promise.all(numericCheckPromises);
+        this.numericColumns = this.columns.filter(
+          (col, index) => numericResults[index]
+        );
+        if (this.numericColumns.length >= 2) {
+          this.xColumn = this.numericColumns[0];
+          this.yColumn = this.numericColumns[1];
+          this.colorColumn = this.columns.includes("species")
+            ? "species"
+            : this.numericColumns[0];
+          this.updateRanges();
+        }
+      } catch (error) {
+        console.error("Error fetching columns:", error);
+      }
+    },
+    async isNumeric(column) {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/is_numeric`, {
+          params: { column },
+        });
+        return response.data.is_numeric;
+      } catch (error) {
+        console.error("Error checking if column is numeric:", error);
+        return false;
+      }
+    },
     async updateRanges() {
       try {
         const response = await axios.get(`${API_BASE_URL}/column_stats`, {
           params: {
             x_column: this.xColumn,
-            y_column: this.yColumn
-          }
+            y_column: this.yColumn,
+          },
         });
-
         const xStats = response.data.x_stats;
         const yStats = response.data.y_stats;
-
         this.xRange = [xStats.min, xStats.max];
         this.yRange = [yStats.min, yStats.max];
         this.minX = xStats.min;
         this.maxX = xStats.max;
         this.minY = yStats.min;
         this.maxY = yStats.max;
-
         this.fetchPlots();
-        this.fetchSummary();
       } catch (error) {
         console.error("Error fetching column stats:", error);
       }
@@ -162,92 +276,83 @@ export default {
     fetchPlots() {
       const params = {
         x_column: this.xColumn,
-        y_column: this.yColumn,
+        y_column: this.selectedPlot !== "histogram" ? this.yColumn : undefined,
         color_column: this.colorColumn,
         min_x: this.minX,
         max_x: this.maxX,
-        min_y: this.minY,
-        max_y: this.maxY
+        min_y: this.selectedPlot !== "histogram" ? this.minY : undefined,
+        max_y: this.selectedPlot !== "histogram" ? this.maxY : undefined,
       };
-
-      const plotTypes = ['scatter', 'contour', 'histogram', 'box'];
-
-      plotTypes.forEach(plotType => {
+      const plotTypes = ["scatter", "contour", "histogram", "box"];
+      plotTypes.forEach((plotType) => {
         axios
-          .get(`${API_BASE_URL}/plot`, { params: { ...params, plot_type: plotType } })
-          .then(response => {
-            if (plotType === 'scatter') {
+          .get(`${API_BASE_URL}/plot`, {
+            params: { ...params, plot_type: plotType },
+          })
+          .then((response) => {
+            if (plotType === "scatter") {
               this.scatterPlotData = JSON.parse(response.data.scatter);
-            } else if (plotType === 'contour') {
+            } else if (plotType === "contour") {
               this.contourPlotData = JSON.parse(response.data.contour);
-            } else if (plotType === 'histogram') {
+            } else if (plotType === "histogram") {
               this.histogramPlotData = JSON.parse(response.data.histogram);
-            } else if (plotType === 'box') {
+            } else if (plotType === "box") {
               this.boxPlotData = JSON.parse(response.data.box);
             }
           })
-          .catch(error => {
-            console.error(`There was an error fetching the ${plotType} plot!`, error);
+          .catch((error) => {
+            console.error(
+              `There was an error fetching the ${plotType} plot!`,
+              error
+            );
           });
       });
+      this.fetchSummary(params); // Pass the same params to fetchSummary
     },
     fetchPlot() {
       this.fetchPlots();
-      this.fetchSummary();
     },
-    fetchSummary() {
-      const params = {
-        x_column: this.xColumn,
-        y_column: this.yColumn,
-        color_column: this.colorColumn,
-        min_x: this.minX,
-        max_x: this.maxX,
-        min_y: this.minY,
-        max_y: this.maxY
-      };
+    async fetchSummary(params) {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/summary`, { params });
+        this.summaryStats = response.data || [];
+        console.log("Summary stats from backend:", this.summaryStats);
 
-      axios
-        .get(`${API_BASE_URL}/summary`, { params })
-        .then(response => {
-          this.summaryStats = response.data;
-          this.summaryHeaders = Object.keys(response.data[0]).filter(key => key !== this.colorColumn && key !== 'count');
-        })
-        .catch(error => {
-          console.error("There was an error fetching the summary statistics!", error);
-        });
+        if (this.summaryStats.length > 0) {
+          const sampleRow = this.summaryStats[0];
+          console.log("Sample row:", sampleRow);
+          this.summaryHeaders = Object.keys(sampleRow);
+          console.log("Summary headers:", this.summaryHeaders);
+        } else {
+          this.summaryHeaders = [];
+        }
+
+        console.log("Summary headers after processing:", this.summaryHeaders);
+        console.log("Summary stats being rendered:", this.summaryStats);
+      } catch (error) {
+        console.error(
+          "There was an error fetching the summary statistics!",
+          error
+        );
+        this.summaryStats = [];
+        this.summaryHeaders = [];
+      }
     },
-    formattedHeader(header) {
-      const headerMapping = {
-        'bill_length_mm_mean': 'Mean Bill Length',
-        'bill_length_mm_std': 'Std Dev Bill Length',
-        'bill_length_mm_min': 'Min Bill Length',
-        'bill_length_mm_max': 'Max Bill Length',
-        'bill_depth_mm_mean': 'Mean Bill Depth',
-        'bill_depth_mm_std': 'Std Dev Bill Depth',
-        'bill_depth_mm_min': 'Min Bill Depth',
-        'bill_depth_mm_max': 'Max Bill Depth',
-        'flipper_length_mm_mean': 'Mean Flipper Length',
-        'flipper_length_mm_std': 'Std Dev Flipper Length',
-        'flipper_length_mm_min': 'Min Flipper Length',
-        'flipper_length_mm_max': 'Max Flipper Length',
-        'body_mass_g_mean': 'Mean Body Mass',
-        'body_mass_g_std': 'Std Dev Body Mass',
-        'body_mass_g_min': 'Min Body Mass',
-        'body_mass_g_max': 'Max Body Mass'
-      };
-      return headerMapping[header] || header;
-    },
-    formatNumber(value) {
-      return Number(value).toFixed(2);
-    },
-    debouncedFetchPlots: debounce(function() {
+    debouncedFetchPlots: debounce(function () {
       this.fetchPlots();
-      this.fetchSummary();
-    }, 500)
+    }, 500),
+    async loadInitialData() {
+      try {
+        await this.fetchColumns();
+        this.selectedPlot = "all";
+      } catch (error) {
+        console.error("Error loading initial data:", error);
+      }
+    },
   },
   mounted() {
-    this.updateRanges();
-  }
+    this.loadInitialData();
+  },
 };
 </script>
 
@@ -260,26 +365,52 @@ export default {
 
 body {
   background-color: #092635;
-  color: #FAF0E6;
-  font-family: 'Arial', sans-serif;
+  color: #faf0e6;
+  font-family: "Arial", sans-serif;
 }
 
 .dashboard {
   display: flex;
+  flex-direction: column;
   height: 100vh;
 }
 
-.left-panel {
-  flex: 3;
+.header {
+  text-align: center;
   padding: 20px;
-  background-color: #092635;
-  border-right: 2px solid #1B4242;
+  background-color: #1b4242;
+  border-bottom: 2px solid #092635;
+}
+
+.content {
+  display: flex;
+  flex: 1;
+}
+
+.left-panel {
+  flex: 1;
+  padding: 20px;
+  margin-top: 40px;
+  background-color: #1b4242;
+  border-right: 2px solid #092635;
+}
+
+.sticky-container {
+  position: sticky;
+  top: 20px;
+}
+
+.upload-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
 }
 
 .right-panel {
-  flex: 1;
+  flex: 3;
   padding: 20px;
-  background-color: #1B4242;
+  background-color: #092635;
+  overflow-y: auto;
 }
 
 .controls {
@@ -289,13 +420,13 @@ body {
 label {
   display: block;
   margin-bottom: 5px;
-  color: #9EC8B9;
+  color: #9ec8b9;
 }
 
 select {
-  background-color: #1B4242;
-  color: #FAF0E6;
-  border: 1px solid #5C8374;
+  background-color: #1b4242;
+  color: #faf0e6;
+  border: 1px solid #5c8374;
   border-radius: 5px;
   padding: 5px;
   width: 100%;
@@ -303,16 +434,16 @@ select {
 }
 
 .vue3-slider {
-  --vue-slider-main-color: #5C8374;
-  --vue-slider-rail-background: #1B4242;
-  --vue-slider-thumb-background: #9EC8B9;
+  --vue-slider-main-color: #5c8374;
+  --vue-slider-rail-background: #1b4242;
+  --vue-slider-thumb-background: #9ec8b9;
 }
 
 .plot {
   display: flex;
   justify-content: center;
   margin-top: 20px;
-  background-color: #1B4242;
+  background-color: #1b4242;
   border-radius: 10px;
   padding: 20px;
 }
@@ -327,17 +458,38 @@ table {
   margin-top: 10px;
 }
 
-th, td {
-  border: 1px solid #5C8374;
+th,
+td {
+  border: 1px solid #5c8374;
   padding: 10px;
   text-align: left;
 }
 
 th {
-  background-color: #5C8374;
+  background-color: #5c8374;
 }
 
 td {
-  background-color: #1B4242;
+  background-color: #1b4242;
+}
+
+@media (min-width: 768px) {
+  .dashboard {
+    flex-direction: column;
+  }
+  .content {
+    flex-direction: row;
+  }
+}
+
+@media (max-width: 767px) {
+  .left-panel,
+  .right-panel {
+    width: 100%;
+  }
+
+  .sticky-container {
+    position: relative;
+  }
 }
 </style>

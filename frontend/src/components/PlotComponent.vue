@@ -1,5 +1,7 @@
 <template>
-  <div ref="plotDiv"></div>
+  <div>
+    <div ref="plotDiv"></div>
+  </div>
 </template>
 
 <script>
